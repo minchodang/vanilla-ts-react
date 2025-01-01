@@ -27,6 +27,7 @@ const RAW_RUNTIME_STATE =
       [null, {\
         "packageLocation": "./",\
         "packageDependencies": [\
+          ["prettier", "npm:3.4.2"],\
           ["typescript", "patch:typescript@npm%3A5.6.3#optional!builtin<compat/typescript>::version=5.6.3&hash=8c6c40"],\
           ["vite", "virtual:e1187350eecf9973ecbc1b6b1d71d6ed5d88fc096cc03a8d20171e98dfb0a24d743b19e3b632f2db05265ad10ecdcab9d5fd765179ba60ea86e02dd6bd096f0f#npm:6.0.6"],\
           ["vite-tsconfig-paths", "virtual:e1187350eecf9973ecbc1b6b1d71d6ed5d88fc096cc03a8d20171e98dfb0a24d743b19e3b632f2db05265ad10ecdcab9d5fd765179ba60ea86e02dd6bd096f0f#npm:5.1.4"]\
@@ -1069,6 +1070,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["my-vanilla-ts-app", "workspace:."],\
+          ["prettier", "npm:3.4.2"],\
           ["typescript", "patch:typescript@npm%3A5.6.3#optional!builtin<compat/typescript>::version=5.6.3&hash=8c6c40"],\
           ["vite", "virtual:e1187350eecf9973ecbc1b6b1d71d6ed5d88fc096cc03a8d20171e98dfb0a24d743b19e3b632f2db05265ad10ecdcab9d5fd765179ba60ea86e02dd6bd096f0f#npm:6.0.6"],\
           ["vite-tsconfig-paths", "virtual:e1187350eecf9973ecbc1b6b1d71d6ed5d88fc096cc03a8d20171e98dfb0a24d743b19e3b632f2db05265ad10ecdcab9d5fd765179ba60ea86e02dd6bd096f0f#npm:5.1.4"]\
@@ -1178,6 +1180,15 @@ const RAW_RUNTIME_STATE =
           ["nanoid", "npm:3.3.8"],\
           ["picocolors", "npm:1.1.1"],\
           ["source-map-js", "npm:1.2.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["prettier", [\
+      ["npm:3.4.2", {\
+        "packageLocation": "./.yarn/unplugged/prettier-npm-3.4.2-fae349e44a/node_modules/prettier/",\
+        "packageDependencies": [\
+          ["prettier", "npm:3.4.2"]\
         ],\
         "linkType": "HARD"\
       }]\
