@@ -1,6 +1,6 @@
-import App from './App';
-import { createElement } from './lib/dom/client';
+import { router } from './lib/router/router';
+import { routes } from './routes/routes';
 
 const app = document.getElementById('app') as HTMLElement;
 
-app.appendChild(createElement(<App />));
+router(app, routes);
