@@ -78,7 +78,6 @@ const updateElement = (
       currentVDOM.children[i],
       removeIndex ?? i
     );
-    console.log('removeIndex', _removeIndex);
     removeIndex = _removeIndex;
   }
 };
