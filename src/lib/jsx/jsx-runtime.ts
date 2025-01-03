@@ -4,6 +4,7 @@ export type VDOM = {
   type: string;
   props: Record<string, any> | null;
   children: VNode[];
+  key?: string | number;
 };
 
 export type Component = (props?: Record<string, any>) => any;
