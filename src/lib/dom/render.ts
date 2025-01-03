@@ -11,6 +11,9 @@ interface IRenderInfo {
 interface IOptions {
   states: any[];
   stateHook: number;
+  dependencies: any[];
+  effectHook: number;
+  effectList: Array<() => void>;
 }
 
 const frameRunner = (callback: () => void) => {
@@ -25,6 +28,9 @@ const domRenderer = () => {
   const options: IOptions = {
     states: [],
     stateHook: 0,
+    dependencies: [],
+    effectHook: 0,
+    effectList: [],
   };
   const renderInfo: IRenderInfo = {
     $root: null,
@@ -35,6 +41,9 @@ const domRenderer = () => {
   const resetOptions = () => {
     options.states = [];
     options.stateHook = 0;
+    options.dependencies = [];
+    options.effectList = [];
+    options.effectHook = 0;
   };
 
   const _render = frameRunner(() => {
@@ -44,7 +53,10 @@ const domRenderer = () => {
     const newVDOM = component();
     updateElement($root, newVDOM, currentVDOM);
     options.stateHook = 0;
+    options.effectHook = 0;
     renderInfo.currentVDOM = newVDOM;
+    options.effectList.forEach((effect) => effect());
+    options.effectList = [];
   });
 
   const render = (root: HTMLElement, component: Component) => {
@@ -74,7 +86,25 @@ const domRenderer = () => {
     return [state, setState] as const;
   };
 
-  return { useState, render };
+  const useEffect = (callback: () => void, dependencies?: any[]) => {
+    const index = options.effectHook;
+    options.effectList[index] = () => {
+      const hasNoDeps = !dependencies;
+      const prevDeps = options.dependencies[index];
+
+      const hasChangedDeps = prevDeps
+        ? dependencies?.some((deps, i) => !shallowEqual(deps, prevDeps[i]))
+        : true;
+
+      if (hasNoDeps || hasChangedDeps) {
+        callback();
+        options.dependencies[index] = dependencies;
+      }
+    };
+  };
+  options.effectHook += 1;
+
+  return { useState, render, useEffect };
 };
 
-export const { useState, render } = domRenderer();
+export const { useState, render, useEffect } = domRenderer();
