@@ -6,7 +6,7 @@ export type VDOM = {
   children: VNode[];
 };
 
-export type Component = (props: Record<string, any>) => any;
+export type Component = (props?: Record<string, any>) => any;
 
 export const h = (
   component: string | Component,

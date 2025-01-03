@@ -1,5 +1,6 @@
 import type { Component } from '@/lib/jsx/jsx-runtime';
 import { createElement } from '../dom/client';
+import { render } from '../dom/render';
 
 export type Route = {
   path: string;
@@ -97,11 +98,7 @@ const spaRouter = () => {
     }
     pageParams = params;
     if (routeInfo.root) {
-      while (routeInfo.root.firstChild) {
-        routeInfo.root.removeChild(routeInfo.root.firstChild);
-      }
-      routeInfo.root.appendChild(createElement(Component({ params })));
-      return;
+      render(routeInfo.root, Component);
     }
     throw new Error('no root element error');
   };
