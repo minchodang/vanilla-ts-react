@@ -51,7 +51,6 @@ const spaRouter = () => {
     } else {
       pageParams = params;
       if (routeInfo.root) {
-        console.log('render', routeInfo);
         render(routeInfo.root, Component);
       } else {
         throw new Error('root element is empty');

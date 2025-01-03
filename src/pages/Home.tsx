@@ -3,7 +3,7 @@ const HomePage = () => {
     <div>
       <h2>HomePage</h2>
       <a href="/post/1">go post</a>
-      &nbsp;&nbsp;
+      dsfsfsdfds
       <a href="/blog">go blog</a>
     </div>
   );

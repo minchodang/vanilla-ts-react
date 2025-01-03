@@ -42,9 +42,6 @@ const domRenderer = () => {
     if (!$root || !component) return;
 
     const newVDOM = component();
-    console.log(newVDOM, 'newVDOM');
-    console.log($root, 'root');
-    console.log(currentVDOM, 'currentVDOM');
     updateElement($root, newVDOM, currentVDOM);
     options.stateHook = 0;
     renderInfo.currentVDOM = newVDOM;
