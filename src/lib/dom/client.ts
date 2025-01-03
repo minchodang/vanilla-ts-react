@@ -1,11 +1,16 @@
 import { VNode } from '@/lib/jsx/jsx-runtime';
 
 const createElement = (node: VNode) => {
-  if (!node) {
+  if (node === null || node === undefined) {
     return document.createDocumentFragment();
   }
   if (typeof node === 'string' || typeof node === 'number') {
     return document.createTextNode(String(node));
+  }
+
+  const isFragment = node.type === 'fragment';
+  if (isFragment) {
+    return document.createDocumentFragment();
   }
 
   const element = document.createElement(node.type);
@@ -18,9 +23,7 @@ const createElement = (node: VNode) => {
     }
   });
 
-  node.children.forEach((child) => {
-    element.appendChild(createElement(child));
-  });
+  node.children.forEach((child) => element.appendChild(createElement(child)));
 
   return element;
 };
