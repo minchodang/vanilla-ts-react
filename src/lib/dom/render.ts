@@ -1,6 +1,7 @@
 import { Component, VDOM } from '@/lib/jsx/jsx-runtime';
 import { updateElement } from './diff';
 import { shallowEqual } from '../utils/shallowEqual';
+import { deepEqualVDOM } from '../utils/deepEqual';
 
 interface IRenderInfo {
   $root: HTMLElement | null;
@@ -51,6 +52,7 @@ const domRenderer = () => {
     if (!$root || !component) return;
 
     const newVDOM = component();
+
     updateElement($root, newVDOM, currentVDOM);
     options.stateHook = 0;
     options.effectHook = 0;
@@ -68,20 +70,32 @@ const domRenderer = () => {
 
   const useState = <T>(initialState?: T) => {
     const { stateHook: index, states } = options;
-    const state = (states[index] ?? initialState) as T;
+    // 만약 아직 states[index]에 아무 값도 없다면, 초기값을 세팅
+    if (states[index] === undefined) {
+      states[index] = initialState;
+    }
+
+    const state = states[index] as T;
     const setState = (newState: T | ((prev: T) => T)) => {
-      let resolvedState: T;
+      const resolvedState =
+        typeof newState === 'function' ? (newState as (prev: T) => T)(state) : newState;
 
-      if (typeof newState === 'function') {
-        resolvedState = (newState as (prev: T) => T)(state);
-      } else {
-        resolvedState = newState;
-      }
+      console.log(
+        'State comparison:',
+        shallowEqual(state, resolvedState),
+        'Current state:',
+        state,
+        'New state:',
+        resolvedState
+      );
 
+      // 이전 상태와 동일하면 렌더링 스킵
       if (shallowEqual(state, resolvedState)) return;
+
       states[index] = resolvedState;
       _render();
     };
+
     options.stateHook += 1;
     return [state, setState] as const;
   };
