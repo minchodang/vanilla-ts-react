@@ -1,4 +1,4 @@
-import { useEffect, useState } from '@/lib/dom/render';
+import { useState } from '@/lib/dom/render';
 
 interface BlogPageProps {
   title: string;
@@ -6,21 +6,15 @@ interface BlogPageProps {
 }
 
 const BlogPage = () => {
+  console.log(1);
   const [number, setNumber] = useState<BlogPageProps>({
     title: 'BlogPage',
     count: 0,
   });
 
-  console.log(1);
   const handleButtonClick = () => {
     setNumber((prev) => ({ ...prev, count: prev.count + 1 }));
   };
-
-  useEffect(() => {
-    console.log(2);
-  }, [number.title]);
-
-  console.log(3);
 
   return (
     <div>
