@@ -62,6 +62,7 @@ const domRenderer = () => {
   });
 
   const render = (root: HTMLElement, component: Component) => {
+    console.log('track1');
     resetOptions();
     renderInfo.$root = root;
     renderInfo.component = component;
@@ -76,24 +77,34 @@ const domRenderer = () => {
     }
 
     const state = states[index] as T;
-    const setState = (newState: T | ((prev: T) => T)) => {
-      const resolvedState =
-        typeof newState === 'function' ? (newState as (prev: T) => T)(state) : newState;
 
-      console.log(
-        'State comparison:',
-        shallowEqual(state, resolvedState),
-        'Current state:',
-        state,
-        'New state:',
-        resolvedState
-      );
+    let updatePromise: Promise<void> | null = null;
 
-      // 이전 상태와 동일하면 렌더링 스킵
-      if (shallowEqual(state, resolvedState)) return;
+    const setState = async (newState: T | ((prev: T) => T)) => {
+      if (updatePromise) return; // 기존 업데이트가 진행 중이라면 무시
 
-      states[index] = resolvedState;
-      _render();
+      updatePromise = (async () => {
+        const resolvedState =
+          typeof newState === 'function' ? (newState as (prev: T) => T)(state) : newState;
+
+        console.log(
+          'State comparison:',
+          shallowEqual(state, resolvedState),
+          'Current state:',
+          state,
+          'New state:',
+          resolvedState
+        );
+
+        if (shallowEqual(state, resolvedState)) {
+          updatePromise = null; // 동일한 상태라면 업데이트 완료로 초기화
+          return;
+        }
+
+        states[index] = resolvedState;
+        _render();
+        updatePromise = null; // 상태 업데이트 완료
+      })();
     };
 
     options.stateHook += 1;
