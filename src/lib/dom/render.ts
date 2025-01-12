@@ -1,7 +1,6 @@
 import { Component, VDOM } from '@/lib/jsx/jsx-runtime';
 import { updateElement } from './diff';
 import { shallowEqual } from '../utils/shallowEqual';
-import { deepEqualVDOM } from '../utils/deepEqual';
 
 interface IRenderInfo {
   $root: HTMLElement | null;
