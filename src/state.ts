@@ -1,23 +1,27 @@
-let currentInstanceStack: any[] = [];
+import { ComponentInstance } from './component';
 
-export const setCurrentInstance = (instance: any) => {
-  currentInstanceStack.push(instance);
+// 컴포넌트 상태 관리
+let currentInstanceStack: ComponentInstance<any>[] = [];
+
+export const setCurrentInstance = <P>(instance: ComponentInstance<P>): void => {
+  currentInstanceStack.push(instance as ComponentInstance<any>);
 };
 
-export const clearCurrentInstance = () => {
+export const clearCurrentInstance = (): void => {
   currentInstanceStack.pop();
 };
 
-export const getCurrentInstance = (): any => {
-  return currentInstanceStack[currentInstanceStack.length - 1];
+export const getCurrentInstance = <P>(): ComponentInstance<P> => {
+  const instance = currentInstanceStack[currentInstanceStack.length - 1];
+  if (!instance) {
+    throw new Error('No component instance found.');
+  }
+  return instance as ComponentInstance<P>;
 };
 
+// 상태 훅
 export const useState = <T>(initialValue: T): [T, (newValue: T | ((prev: T) => T)) => void] => {
   const instance = getCurrentInstance();
-
-  if (!instance) {
-    throw new Error('useState must be used inside a component.');
-  }
 
   const stateIndex = instance.hookIndex++;
   if (instance.hooks[stateIndex] === undefined) {
@@ -25,7 +29,7 @@ export const useState = <T>(initialValue: T): [T, (newValue: T | ((prev: T) => T
   }
 
   const setState = (newValue: T | ((prev: T) => T)) => {
-    const currentState: T = instance.hooks[stateIndex];
+    const currentState = instance.hooks[stateIndex] as T;
     const resolvedState =
       typeof newValue === 'function' ? (newValue as (prev: T) => T)(currentState) : newValue;
 
@@ -35,5 +39,5 @@ export const useState = <T>(initialValue: T): [T, (newValue: T | ((prev: T) => T
     }
   };
 
-  return [instance.hooks[stateIndex], setState];
+  return [instance.hooks[stateIndex] as T, setState];
 };
