@@ -1,38 +1,30 @@
-import { VNode, Fragment, VDOM } from '@/lib/jsx/jsx-runtime';
-import { renderComponent } from './component';
+import { Fragment, VNode, Props } from '@/lib/jsx/jsx-runtime';
+import { renderComponent, updateComponent } from './component';
 
-export const createElement = (
-  vnode: VNode | string | number
-): HTMLElement | Text | DocumentFragment => {
+export const componentInstances = new Map<Function, Map<string, any>>();
+
+export const createElement = (vnode: VNode): HTMLElement | Text | DocumentFragment => {
   if (typeof vnode === 'string' || typeof vnode === 'number') {
     return document.createTextNode(String(vnode));
   }
 
   if (typeof vnode?.type === 'function') {
-    // Fragment handling
     if (vnode.type === Fragment) {
-      const children = vnode.children;
       const fragment = document.createDocumentFragment();
+      const children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
 
-      if (Array.isArray(children)) {
-        children.forEach((child) => {
+      children.forEach((child) => {
+        if (child != null) {
           fragment.appendChild(createElement(child));
-        });
-      } else if (children != null) {
-        fragment.appendChild(createElement(children));
-      }
+        }
+      });
 
       return fragment;
-    } else {
-      // Component handling without additional div container
-      const componentContainer = document.createElement('div');
-      componentContainer.setAttribute('data-component', vnode.type.name || 'anonymous');
-      renderComponent(vnode.type, vnode.props, componentContainer); // 컨테이너를 전달하여 인스턴스 재사용
-      return componentContainer;
     }
+
+    return renderComponent(vnode.type, vnode.props || {});
   }
 
-  // Regular HTML element handling
   const element = document.createElement(vnode?.type as string);
 
   if (vnode?.props) {
@@ -40,7 +32,7 @@ export const createElement = (
       if (key.startsWith('on') && typeof value === 'function') {
         element.addEventListener(key.substring(2).toLowerCase(), value as EventListener);
       } else {
-        element.setAttribute(key, value);
+        element.setAttribute(key, String(value));
       }
     });
   }
@@ -64,148 +56,131 @@ export const updateElement = (
   index: number = 0
 ) => {
   const existingElement = parent.childNodes[index];
-  console.log(`Updating child at index ${index}:`, existingElement);
 
-  // Helper function to normalize children to arrays
-  const normalizeChildren = (
-    children: VNode | VNode[] | string | number | null | undefined
-  ): VNode[] => {
-    if (Array.isArray(children)) {
-      return children;
-    } else if (children != null) {
-      return [children];
-    } else {
-      return [];
+  if (
+    typeof oldVdom === 'object' &&
+    typeof newVdom === 'object' &&
+    oldVdom?.type === newVdom?.type &&
+    typeof newVdom?.type === 'function'
+  ) {
+    const instanceMap = componentInstances.get(newVdom.type);
+    const instanceKey = (newVdom.props?.key as string) || 'default';
+    const instance = instanceMap?.get(instanceKey);
+
+    if (instance && existingElement === instance.element) {
+      updateComponent(instance, newVdom.props ?? {});
+      return;
     }
-  };
+  }
 
-  // 새 노드만 있는 경우 (추가)
-  if ((oldVdom === null || oldVdom === undefined) && newVdom !== null && newVdom !== undefined) {
-    console.log('여기가 처음이니!');
-    parent.appendChild(
-      typeof newVdom === 'object' && newVdom !== null
-        ? createElement(newVdom)
-        : typeof newVdom === 'number'
-          ? document.createTextNode(newVdom.toString())
-          : document.createTextNode(String(newVdom))
-    );
-    console.log(`Appended new node at index ${index}:`, newVdom);
+  // Handle node addition
+  if (oldVdom == null) {
+    if (newVdom != null) {
+      const newElement = createElement(newVdom);
+      parent.appendChild(newElement);
+    }
     return;
   }
 
-  // 이전 노드만 있는 경우 (제거)
-  if (oldVdom !== null && oldVdom !== undefined && (newVdom === null || newVdom === undefined)) {
+  // Handle node removal
+  if (newVdom == null) {
     parent.removeChild(existingElement);
-    console.log(`Removed node at index ${index}:`, oldVdom);
     return;
   }
 
-  // 둘 다 숫자인 경우
-  if (typeof oldVdom === 'number' && typeof newVdom === 'number') {
-    if (oldVdom !== newVdom) {
-      if (existingElement.nodeType === Node.TEXT_NODE) {
-        existingElement.textContent = newVdom.toString();
-        console.log(`Updated number node at index ${index}:`, newVdom);
-      } else {
-        parent.replaceChild(document.createTextNode(newVdom.toString()), existingElement);
-        console.log(`Replaced node with number node at index ${index}:`, newVdom);
-      }
+  // Handle text node updates
+  if (
+    (typeof oldVdom === 'string' || typeof oldVdom === 'number') &&
+    (typeof newVdom === 'string' || typeof newVdom === 'number')
+  ) {
+    if (oldVdom.toString() !== newVdom.toString()) {
+      const newTextNode = document.createTextNode(newVdom.toString());
+      parent.replaceChild(newTextNode, existingElement);
     }
     return;
   }
 
-  // 둘 다 문자열인 경우
-  if (typeof oldVdom === 'string' && typeof newVdom === 'string') {
-    if (oldVdom !== newVdom) {
-      if (existingElement.nodeType === Node.TEXT_NODE) {
-        existingElement.textContent = newVdom;
-        console.log(`Updated string node at index ${index}:`, newVdom);
-      } else {
-        parent.replaceChild(document.createTextNode(newVdom), existingElement);
-        console.log(`Replaced node with string node at index ${index}:`, newVdom);
-      }
-    }
-    return;
-  }
-
-  // 타입이 다르면 완전히 교체
+  // Handle different node types
   if (typeof oldVdom !== typeof newVdom) {
-    const newNode =
-      typeof newVdom === 'object'
-        ? createElement(newVdom)
-        : typeof newVdom === 'number'
-          ? document.createTextNode(newVdom.toString())
-          : document.createTextNode(String(newVdom));
-    parent.replaceChild(newNode, existingElement);
-    console.log(`Replaced node at index ${index} due to type mismatch:`, newVdom);
+    const newElement = createElement(newVdom);
+    parent.replaceChild(newElement, existingElement);
     return;
   }
 
-  // 객체 타입의 VNode 처리
+  // Handle VNode updates
   if (typeof oldVdom === 'object' && typeof newVdom === 'object') {
-    if (oldVdom?.type !== newVdom?.type) {
-      parent.replaceChild(createElement(newVdom!), existingElement);
-      console.log(`Replaced node at index ${index} due to type mismatch:`, newVdom);
+    // Different component or element types
+    if (oldVdom.type !== newVdom.type) {
+      const newElement = createElement(newVdom);
+      parent.replaceChild(newElement, existingElement);
       return;
     }
 
-    if (typeof newVdom?.type === 'string') {
+    // Same type of element, update props and children
+    if (typeof newVdom.type === 'string') {
+      const element = existingElement as HTMLElement;
+
       // Update props
-      updateProps(
-        existingElement as HTMLElement,
-        (oldVdom as VDOM)?.props,
-        (newVdom as VDOM)?.props
-      );
-      console.log(`Updated props for element at index ${index}:`, newVdom.props);
+      updateProps(element, oldVdom.props || {}, newVdom.props || {});
 
-      // Update children
-      const oldChildren = normalizeChildren((oldVdom as VDOM)?.children);
-      const newChildren = normalizeChildren((newVdom as VDOM)?.children);
-      const max = Math.max(oldChildren.length, newChildren.length);
+      // Normalize children arrays
+      const oldChildren = Array.isArray(oldVdom.children) ? oldVdom.children : [oldVdom.children];
+      const newChildren = Array.isArray(newVdom.children) ? newVdom.children : [newVdom.children];
 
-      for (let i = 0; i < max; i++) {
-        updateElement(existingElement as HTMLElement, oldChildren[i], newChildren[i], i);
+      // Update all children
+      const maxLength = Math.max(oldChildren.length, newChildren.length);
+      for (let i = 0; i < maxLength; i++) {
+        updateElement(element, oldChildren[i], newChildren[i], i);
       }
-    } else if (typeof newVdom?.type === 'function') {
-      // Component handling
-      renderComponent(newVdom.type, newVdom.props, existingElement as HTMLElement);
-      console.log(`Updated component at index ${index}:`, newVdom.type.name || 'Anonymous');
     }
   }
 };
 
-const updateProps = (
-  element: HTMLElement,
-  oldProps: Record<string, any> | null,
-  newProps: Record<string, any> | null
-) => {
-  if (!oldProps) oldProps = {};
-  if (!newProps) newProps = {};
-
+const updateProps = (element: HTMLElement, oldProps: Props<unknown>, newProps: Props<unknown>) => {
   // Remove old props
-  for (const key in oldProps) {
+  for (const [key, value] of Object.entries(oldProps)) {
     if (!(key in newProps)) {
-      if (key.startsWith('on') && typeof oldProps[key] === 'function') {
-        element.removeEventListener(key.substring(2).toLowerCase(), oldProps[key]);
+      if (key.startsWith('on') && typeof value === 'function') {
+        element.removeEventListener(key.substring(2).toLowerCase(), value as EventListener);
       } else {
         element.removeAttribute(key);
       }
     }
   }
 
-  // Add new props
-  for (const key in newProps) {
-    if (key.startsWith('on') && typeof newProps[key] === 'function') {
-      if (oldProps[key] !== newProps[key]) {
-        if (oldProps[key]) {
-          element.removeEventListener(key.substring(2).toLowerCase(), oldProps[key]);
+  // Add or update new props
+  for (const [key, value] of Object.entries(newProps)) {
+    if (oldProps[key] !== value) {
+      if (key.startsWith('on') && typeof value === 'function') {
+        if (typeof oldProps[key] === 'function') {
+          element.removeEventListener(
+            key.substring(2).toLowerCase(),
+            oldProps[key] as EventListener
+          );
         }
-        element.addEventListener(key.substring(2).toLowerCase(), newProps[key]);
-      }
-    } else {
-      if (oldProps[key] !== newProps[key]) {
-        element.setAttribute(key, newProps[key]);
+        element.addEventListener(key.substring(2).toLowerCase(), value as EventListener);
+      } else {
+        if (value === null || value === false) {
+          element.removeAttribute(key);
+        } else {
+          element.setAttribute(key, String(value));
+        }
       }
     }
   }
+};
+
+export const shallowEqual = <T extends Record<string, unknown>>(
+  obj1: T | null,
+  obj2: T | null
+): boolean => {
+  if (obj1 === obj2) return true;
+  if (!obj1 || !obj2) return false;
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  return keys1.every((key) => obj1[key] === obj2[key]);
 };
