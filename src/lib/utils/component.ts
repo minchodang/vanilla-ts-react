@@ -1,6 +1,24 @@
-import { VNode, Props, Component } from '@/lib/jsx/jsx-runtime';
-import { setCurrentInstance, clearCurrentInstance } from './state';
+import type { VNode, Props, Component } from '@/lib/jsx/jsx-runtime';
 import { createElement } from './dom';
+
+// 컴포넌트 상태 관리
+let currentInstanceStack: ComponentInstance<any>[] = [];
+
+export const setCurrentInstance = <P>(instance: ComponentInstance<P>): void => {
+  currentInstanceStack.push(instance as ComponentInstance<any>);
+};
+
+export const clearCurrentInstance = (): void => {
+  currentInstanceStack.pop();
+};
+
+export const getCurrentInstance = <P>(): ComponentInstance<P> => {
+  const instance = currentInstanceStack[currentInstanceStack.length - 1];
+  if (!instance) {
+    throw new Error('No component instance found.');
+  }
+  return instance as ComponentInstance<P>;
+};
 
 export interface ComponentInstance<P = unknown> {
   element: HTMLElement | null;
