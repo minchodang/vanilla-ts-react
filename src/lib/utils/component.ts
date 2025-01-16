@@ -32,6 +32,9 @@ export interface ComponentInstance<P = unknown> {
   Component: Component<P>;
   forceUpdate?: boolean;
   key?: string | number;
+  // Memoization 관련 필드 추가
+  lastProps?: Props<P>;
+  lastResult?: string;
 }
 
 const componentInstances = new WeakMap<
@@ -49,11 +52,17 @@ export const renderComponent = <P = unknown>(
   let instance = instanceMap?.get(instanceKey as string);
 
   if (instance) {
-    const shouldUpdate = !instance.forceUpdate && shallowEqual(instance.props, props);
+    const isMemoized = !!(Component as any).isMemoized; // memoized 여부 확인
+    const shouldUpdate =
+      !isMemoized || (!instance.forceUpdate && shallowEqual(instance.props, props));
     instance.props = props;
 
+    if (!isMemoized) {
+      instance.render();
+    }
+
     if (shouldUpdate) {
-      // Props가 동일하고 forceUpdate가 아니면 캐시된 DOM 반환
+      // memoized 컴포넌트가 변경되지 않았다면 캐시된 DOM 반환
       return instance.element!;
     }
   } else {
@@ -68,7 +77,7 @@ export const renderComponent = <P = unknown>(
       prevVdom: null,
       isRendering: false,
       key: instanceKey as string | number | undefined,
-      forceUpdate: false, // 상태 변경 시 강제 렌더링 플래그
+      forceUpdate: false,
       rerender: function () {
         if (this.isRendering) return;
         this.isRendering = true;
@@ -105,15 +114,18 @@ export const renderComponent = <P = unknown>(
   return instance.element!;
 };
 
-// updateComponent 수정
 export const updateComponent = <P = unknown>(
   instance: ComponentInstance<P>,
   newProps: Props<P>
 ): VNode => {
-  const shouldUpdate = !instance.forceUpdate && shallowEqual(instance.props, newProps);
+  const isMemoized = !!(instance.Component as any).isMemoized;
+  const shouldUpdate =
+    !isMemoized || (!instance.forceUpdate && !shallowEqual(instance.props, newProps));
+
   instance.props = newProps;
 
   if (shouldUpdate) {
+    instance.rerender();
     return instance.prevVdom!;
   }
 
@@ -122,7 +134,6 @@ export const updateComponent = <P = unknown>(
   clearCurrentInstance();
   return newVdom;
 };
-
 // cleanupComponent 유지
 export const cleanupComponent = <P = unknown>(instance: ComponentInstance<P>) => {
   const instanceMap = componentInstances.get(instance.Component as Component<unknown>);
