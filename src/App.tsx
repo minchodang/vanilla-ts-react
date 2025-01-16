@@ -1,6 +1,7 @@
 import { useRef } from './lib/hooks/useRef';
 import { useState } from './lib/hooks/useState';
-export const Counter = () => {
+import { memo } from './lib/utils/memo';
+export const Counter = memo(() => {
   console.log('자식');
   const [count, setCount] = useState('오');
   const abc = useRef(9);
@@ -17,7 +18,7 @@ export const Counter = () => {
       </button>
     </div>
   );
-};
+});
 
 export const App = () => {
   console.log('부모');

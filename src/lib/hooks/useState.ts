@@ -1,6 +1,6 @@
 import { getCurrentInstance } from '../utils/component';
 
-// 상태 훅
+// useState 개선
 export const useState = <T>(initialValue: T): [T, (newValue: T | ((prev: T) => T)) => void] => {
   const instance = getCurrentInstance();
 
@@ -16,6 +16,9 @@ export const useState = <T>(initialValue: T): [T, (newValue: T | ((prev: T) => T
 
     if (resolvedState !== currentState) {
       instance.hooks[stateIndex] = resolvedState;
+
+      // 내부 상태 변경 시 강제 재렌더링 트리거
+      instance.forceUpdate = true;
       instance.rerender();
     }
   };

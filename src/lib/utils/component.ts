@@ -1,5 +1,5 @@
 import type { VNode, Props, Component } from '@/lib/jsx/jsx-runtime';
-import { createElement } from './dom';
+import { createElement, shallowEqual } from './dom';
 
 // 컴포넌트 상태 관리
 let currentInstanceStack: ComponentInstance<any>[] = [];
@@ -30,6 +30,7 @@ export interface ComponentInstance<P = unknown> {
   isRendering: boolean;
   rerender: () => void;
   Component: Component<P>;
+  forceUpdate?: boolean;
   key?: string | number;
 }
 
@@ -42,15 +43,19 @@ export const renderComponent = <P = unknown>(
   Component: Component<P>,
   props: Props<P>
 ): HTMLElement => {
-  // 컴포넌트의 키를 생성 (props.key가 있다면 사용)
   const instanceKey = props.key || 'default';
-  // 기존 인스턴스 찾기
+
   let instanceMap = componentInstances.get(Component as Component<unknown>);
   let instance = instanceMap?.get(instanceKey as string);
 
   if (instance) {
-    // 기존 인스턴스가 있다면 props만 업데이트
+    const shouldUpdate = !instance.forceUpdate && shallowEqual(instance.props, props);
     instance.props = props;
+
+    if (shouldUpdate) {
+      // Props가 동일하고 forceUpdate가 아니면 캐시된 DOM 반환
+      return instance.element!;
+    }
   } else {
     // 새 인스턴스 생성
     instance = {
@@ -63,6 +68,7 @@ export const renderComponent = <P = unknown>(
       prevVdom: null,
       isRendering: false,
       key: instanceKey as string | number | undefined,
+      forceUpdate: false, // 상태 변경 시 강제 렌더링 플래그
       rerender: function () {
         if (this.isRendering) return;
         this.isRendering = true;
@@ -84,10 +90,10 @@ export const renderComponent = <P = unknown>(
 
         clearCurrentInstance();
         this.isRendering = false;
+        this.forceUpdate = false; // 렌더링 후 초기화
       },
     };
 
-    // 인스턴스 맵에 저장
     if (!instanceMap) {
       instanceMap = new Map<string, ComponentInstance<unknown>>();
       componentInstances.set(Component as Component<unknown>, instanceMap);
@@ -99,19 +105,25 @@ export const renderComponent = <P = unknown>(
   return instance.element!;
 };
 
+// updateComponent 수정
 export const updateComponent = <P = unknown>(
   instance: ComponentInstance<P>,
   newProps: Props<P>
 ): VNode => {
+  const shouldUpdate = !instance.forceUpdate && shallowEqual(instance.props, newProps);
   instance.props = newProps;
-  instance.hookIndex = 0;
+
+  if (shouldUpdate) {
+    return instance.prevVdom!;
+  }
+
   setCurrentInstance(instance);
   const newVdom = instance.render();
   clearCurrentInstance();
   return newVdom;
 };
 
-// 컴포넌트 정리 함수 개선
+// cleanupComponent 유지
 export const cleanupComponent = <P = unknown>(instance: ComponentInstance<P>) => {
   const instanceMap = componentInstances.get(instance.Component as Component<unknown>);
   if (instanceMap && typeof instance.key === 'string') {
