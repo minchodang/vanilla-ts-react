@@ -8,25 +8,29 @@ export const memo = <P extends Record<string, unknown>>(
   component: MemoizedComponent<P>,
   arePropsEqual: ArePropsEqual<P> = shallowEqual
 ): MemoizedComponent<P> => {
-  let lastProps: P | null = null;
-  let lastResult: string | null = null;
-
-  return (props: P) => {
+  const memoizedComponent: MemoizedComponent<P> = (props: P) => {
     const instance = getCurrentInstance();
 
     // 내부 상태 변경 시 강제 재렌더링
     if (instance.forceUpdate) {
-      return component(props);
+      instance.forceUpdate = false; // 렌더링 후 초기화
+      instance.lastProps = props;
+      instance.lastResult = component(props);
+      return instance.lastResult;
     }
 
     // Props 비교 및 캐시된 결과 반환
-    if (lastProps !== null && arePropsEqual(lastProps, props)) {
-      return lastResult as string;
+    if (instance.lastProps && arePropsEqual(instance.lastProps as P, props)) {
+      return instance.lastResult as string;
     }
 
     // Props가 변경되었거나 새 렌더링이 필요할 경우
-    lastProps = props;
-    lastResult = component(props);
-    return lastResult;
+    instance.lastProps = props;
+    instance.lastResult = component(props);
+    return instance.lastResult;
   };
+
+  // 메모이제이션 플래그 추가
+  (memoizedComponent as any).isMemoized = true;
+  return memoizedComponent;
 };
