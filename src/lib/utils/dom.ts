@@ -1,7 +1,5 @@
-import { Fragment, VNode, Props } from '@/lib/jsx/jsx-runtime';
-import { renderComponent, updateComponent } from './component';
-
-export const componentInstances = new Map<Function, Map<string, any>>();
+import { Fragment, type Props, type VNode } from '@/lib/jsx/jsx-runtime';
+import { renderComponent, updateComponent, componentInstances } from './component';
 
 export const createElement = (vnode: VNode): HTMLElement | Text | DocumentFragment => {
   if (typeof vnode === 'string' || typeof vnode === 'number') {
@@ -13,14 +11,15 @@ export const createElement = (vnode: VNode): HTMLElement | Text | DocumentFragme
       const fragment = document.createDocumentFragment();
       const children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
 
-      children.forEach((child) => {
+      for (const child of children) {
         if (child != null) {
           fragment.appendChild(createElement(child));
         }
-      });
+      }
 
       return fragment;
     }
+    console.log(vnode, 'vnode');
 
     return renderComponent(vnode.type, vnode.props || {});
   }
@@ -28,22 +27,22 @@ export const createElement = (vnode: VNode): HTMLElement | Text | DocumentFragme
   const element = document.createElement(vnode?.type as string);
 
   if (vnode?.props) {
-    Object.entries(vnode.props).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(vnode.props)) {
       if (key.startsWith('on') && typeof value === 'function') {
         element.addEventListener(key.substring(2).toLowerCase(), value as EventListener);
       } else {
         element.setAttribute(key, String(value));
       }
-    });
+    }
   }
 
   if (vnode?.children) {
     const children = Array.isArray(vnode.children) ? vnode.children : [vnode.children];
-    children.forEach((child) => {
+    for (const child of children) {
       if (child != null) {
         element.appendChild(createElement(child));
       }
-    });
+    }
   }
 
   return element;
@@ -53,7 +52,7 @@ export const updateElement = (
   parent: HTMLElement,
   oldVdom: VNode | string | number | null | undefined,
   newVdom: VNode | string | number | null | undefined,
-  index: number = 0
+  index: number
 ) => {
   const existingElement = parent.childNodes[index];
 

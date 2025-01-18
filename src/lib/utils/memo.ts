@@ -1,7 +1,8 @@
-import { getCurrentInstance } from '../utils/component';
+import { Component } from '../jsx/jsx-runtime';
+import { getCurrentInstance } from './component';
 import { shallowEqual } from './dom';
 
-type MemoizedComponent<P> = (props: P) => string; // 렌더링 결과를 문자열로 반환한다고 가정
+type MemoizedComponent<P> = Component<P>;
 type ArePropsEqual<P> = (prevProps: P, nextProps: P) => boolean;
 
 export const memo = <P extends Record<string, unknown>>(
@@ -31,6 +32,6 @@ export const memo = <P extends Record<string, unknown>>(
   };
 
   // 메모이제이션 플래그 추가
-  (memoizedComponent as any).isMemoized = true;
+  memoizedComponent.isMemoized = true;
   return memoizedComponent;
 };

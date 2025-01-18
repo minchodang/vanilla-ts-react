@@ -1,15 +1,23 @@
 export type VNode = string | number | VDOM | null | undefined;
 
-export type Props<P = unknown> = Record<string, P>;
+export interface Component<P = unknown> {
+  (props: Props<P>): VNode;
+  isMemoized?: boolean;
+}
+
+export type Props<P = unknown> = P & {
+  children?: VDOM;
+  key?: string | number;
+  [key: string]: any;
+};
 
 export type VDOM<P = unknown> = {
   type: string | Component<P>;
   props: Props<P> | null;
   children: VNode[];
+  isMemoized?: boolean;
   key?: string | number;
 };
-
-export type Component<P = unknown> = (props?: Props<P>) => VNode;
 
 export const Fragment = (props: { children?: VNode | VNode[] }) => props.children;
 
@@ -20,7 +28,7 @@ export const h = <P = unknown>(
 ): VDOM<P> => {
   return {
     type: component,
-    props: props || {},
+    props: props || ({} as Props<P>),
     children: children.flat(),
   };
 };
