@@ -64,8 +64,6 @@ export const renderComponent = <P = unknown>(
       instance.rerender();
     }
 
-    console.log(instance.render());
-
     if (instance.element === null) {
       throw new Error('Element is null');
     }
