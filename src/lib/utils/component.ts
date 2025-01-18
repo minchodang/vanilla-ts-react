@@ -2,10 +2,10 @@ import type { VNode, Props, Component } from '@/lib/jsx/jsx-runtime';
 import { createElement, shallowEqual } from './dom';
 
 // 컴포넌트 상태 관리
-let currentInstanceStack: ComponentInstance<any>[] = [];
+const currentInstanceStack: ComponentInstance<unknown>[] = [];
 
 export const setCurrentInstance = <P>(instance: ComponentInstance<P>): void => {
-  currentInstanceStack.push(instance as ComponentInstance<any>);
+  currentInstanceStack.push(instance as ComponentInstance<unknown>);
 };
 
 export const clearCurrentInstance = (): void => {
@@ -33,11 +33,12 @@ export interface ComponentInstance<P = unknown> {
   forceUpdate?: boolean;
   key?: string | number;
   // Memoization 관련 필드 추가
+  isMemoized?: boolean;
   lastProps?: Props<P>;
-  lastResult?: string;
+  lastResult?: VNode; // string에서 VNode로 변경
 }
 
-const componentInstances = new WeakMap<
+export const componentInstances = new WeakMap<
   Component<unknown>,
   Map<string, ComponentInstance<unknown>>
 >();
@@ -52,81 +53,93 @@ export const renderComponent = <P = unknown>(
   let instance = instanceMap?.get(instanceKey as string);
 
   if (instance) {
-    const isMemoized = !!(Component as any).isMemoized; // memoized 여부 확인
-    const shouldUpdate =
-      !isMemoized || (!instance.forceUpdate && shallowEqual(instance.props, props));
+    const isMemoized = !!Component.isMemoized; // memoized 여부 확인
+    const hasPropsChanged = !shallowEqual(instance.props, props);
+    const shouldReRender = !isMemoized || instance.forceUpdate || hasPropsChanged;
     instance.props = props;
+    console.log('hasPropsChanged', hasPropsChanged);
+    console.log('shouldReRender', shouldReRender);
 
-    if (!isMemoized) {
-      instance.render();
+    if (shouldReRender) {
+      instance.rerender();
     }
 
-    if (shouldUpdate) {
-      // memoized 컴포넌트가 변경되지 않았다면 캐시된 DOM 반환
-      return instance.element!;
+    console.log(instance.render());
+
+    if (instance.element === null) {
+      throw new Error('Element is null');
     }
-  } else {
-    // 새 인스턴스 생성
-    instance = {
-      element: null,
-      props,
-      Component: Component as Component<unknown>,
-      render: () => Component(props),
-      hooks: [],
-      hookIndex: 0,
-      prevVdom: null,
-      isRendering: false,
-      key: instanceKey as string | number | undefined,
-      forceUpdate: false,
-      rerender: function () {
-        if (this.isRendering) return;
-        this.isRendering = true;
-        this.hookIndex = 0;
-
-        setCurrentInstance(this);
-
-        const newVdom = this.render();
-        const newElement = createElement(newVdom);
-
-        if (this.element?.parentNode) {
-          this.element.parentNode.replaceChild(newElement, this.element);
-        }
-
-        if (newElement instanceof HTMLElement) {
-          this.element = newElement;
-        }
-        this.prevVdom = newVdom;
-
-        clearCurrentInstance();
-        this.isRendering = false;
-        this.forceUpdate = false; // 렌더링 후 초기화
-      },
-    };
-
-    if (!instanceMap) {
-      instanceMap = new Map<string, ComponentInstance<unknown>>();
-      componentInstances.set(Component as Component<unknown>, instanceMap);
-    }
-    instanceMap.set(instanceKey as string, instance);
+    return instance.element;
   }
+  // 새 인스턴스 생성
+  instance = {
+    element: null,
+    props,
+    Component: Component as Component<unknown>,
+    render: function () {
+      // 클로저가 아닌 메서드로 변경
+      return this.Component(this.props);
+    },
+    hooks: [],
+    hookIndex: 0,
+    prevVdom: null,
+    isRendering: false,
+    key: instanceKey as string | number | undefined,
+    forceUpdate: false,
+    rerender: function () {
+      if (this.isRendering) return;
+      this.isRendering = true;
+      this.hookIndex = 0;
+
+      setCurrentInstance(this);
+
+      const newVdom = this.render();
+      const newElement = createElement(newVdom);
+
+      if (this.element?.parentNode) {
+        this.element.parentNode.replaceChild(newElement, this.element);
+      }
+
+      if (newElement instanceof HTMLElement) {
+        this.element = newElement;
+      }
+      this.prevVdom = newVdom;
+
+      clearCurrentInstance();
+      this.isRendering = false;
+      this.forceUpdate = false; // 렌더링 후 초기화
+    },
+  };
+
+  if (!instanceMap) {
+    instanceMap = new Map<string, ComponentInstance<unknown>>();
+    componentInstances.set(Component as Component<unknown>, instanceMap);
+  }
+  instanceMap.set(instanceKey as string, instance);
 
   instance.rerender();
-  return instance.element!;
+  if (instance.element === null) {
+    throw new Error('Element is null');
+  }
+  return instance.element;
 };
 
 export const updateComponent = <P = unknown>(
   instance: ComponentInstance<P>,
   newProps: Props<P>
 ): VNode => {
-  const isMemoized = !!(instance.Component as any).isMemoized;
-  const shouldUpdate =
-    !isMemoized || (!instance.forceUpdate && !shallowEqual(instance.props, newProps));
+  const isMemoized = !!instance.Component.isMemoized;
+  const hasPropsChanged = !shallowEqual(instance.props, newProps);
 
   instance.props = newProps;
 
+  const shouldUpdate = !isMemoized || instance.forceUpdate || hasPropsChanged;
+
+  console.log(`updateComponent - shouldUpdate: ${shouldUpdate}`);
+
   if (shouldUpdate) {
     instance.rerender();
-    return instance.prevVdom!;
+    return instance.prevVdom;
   }
 
   setCurrentInstance(instance);
@@ -134,6 +147,7 @@ export const updateComponent = <P = unknown>(
   clearCurrentInstance();
   return newVdom;
 };
+
 // cleanupComponent 유지
 export const cleanupComponent = <P = unknown>(instance: ComponentInstance<P>) => {
   const instanceMap = componentInstances.get(instance.Component as Component<unknown>);

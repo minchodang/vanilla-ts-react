@@ -1,17 +1,18 @@
 import { useRef } from './lib/hooks/useRef';
 import { useState } from './lib/hooks/useState';
 import { memo } from './lib/utils/memo';
-export const Counter = memo(() => {
-  console.log('자식');
-  const [count, setCount] = useState('오');
+export const Counter = memo(({ count }: { count: number }) => {
+  console.log('자식', count);
+  const [string, setString] = useState('오');
   const abc = useRef(9);
 
   return (
     <div>
-      <div>{count}</div>
+      <div>{string}</div>
       <button
+        type="button"
         onclick={() => {
-          setCount('2');
+          setString('2');
         }}
       >
         sss
@@ -25,10 +26,20 @@ export const App = () => {
   const [count, setCount] = useState(0);
   return (
     <div>
-      <button onClick={() => setCount((prev) => (prev += 1))}>{count}</button>
+      <button
+        type="button"
+        onClick={() =>
+          setCount((prev) => {
+            return prev + 1;
+          })
+        }
+      >
+        {count}
+      </button>
       <span>{count}</span>
       <h1>Vanilla React</h1>
-      <Counter />
+      <div>test {count}</div>
+      <Counter count={count} />
     </div>
   );
 };
