@@ -1,14 +1,20 @@
+import { useMemo } from './lib/hooks/useMemo';
 import { useRef } from './lib/hooks/useRef';
 import { useState } from './lib/hooks/useState';
 import { memo } from './lib/utils/memo';
 export const Counter = memo(({ count }: { count: number }) => {
-  console.log('자식', count);
   const [string, setString] = useState('오');
   const abc = useRef(9);
+  console.log('자식 재 렌더링?');
+
+  const memoizedValue = useMemo(() => {
+    console.log('2');
+    return abc.current + count;
+  }, [count]);
 
   return (
     <div>
-      <div>{string}</div>
+      <div>{memoizedValue}</div>
       <button
         type="button"
         onclick={() => {

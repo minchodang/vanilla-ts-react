@@ -19,6 +19,8 @@ export type VDOM<P = unknown> = {
   key?: string | number;
 };
 
+export type DependencyList = readonly unknown[];
+
 export const Fragment = (props: { children?: VNode | VNode[] }) => props.children;
 
 export const h = <P = unknown>(
