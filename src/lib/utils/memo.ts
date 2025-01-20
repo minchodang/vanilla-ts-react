@@ -1,6 +1,6 @@
-import { Component } from '../jsx/jsx-runtime';
+import type { Component } from '@/lib/jsx/jsx-runtime';
 import { getCurrentInstance } from './component';
-import { shallowEqual } from './dom';
+import { shallowEqual } from './shallowEquals';
 
 type MemoizedComponent<P> = Component<P>;
 type ArePropsEqual<P> = (prevProps: P, nextProps: P) => boolean;

@@ -8,7 +8,7 @@ export interface Component<P = unknown> {
 export type Props<P = unknown> = P & {
   children?: VDOM;
   key?: string | number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type VDOM<P = unknown> = {

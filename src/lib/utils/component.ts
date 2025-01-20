@@ -1,5 +1,6 @@
 import type { VNode, Props, Component } from '@/lib/jsx/jsx-runtime';
-import { createElement, shallowEqual } from './dom';
+import { createElement } from './dom';
+import { shallowEqual } from './shallowEquals';
 
 // 컴포넌트 상태 관리
 const currentInstanceStack: ComponentInstance<unknown>[] = [];
