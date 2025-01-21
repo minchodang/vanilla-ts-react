@@ -1,6 +1,7 @@
 import type { VNode, Props, Component } from '@/lib/jsx/jsx-runtime';
 import { createElement } from './dom';
 import { shallowEqual } from './shallowEquals';
+import { runEffects } from '../hooks/useEffect';
 
 // 컴포넌트 상태 관리
 const currentInstanceStack: ComponentInstance<unknown>[] = [];
@@ -107,6 +108,7 @@ export const renderComponent = <P = unknown>(
       clearCurrentInstance();
       this.isRendering = false;
       this.forceUpdate = false; // 렌더링 후 초기화
+      runEffects();
     },
   };
 
