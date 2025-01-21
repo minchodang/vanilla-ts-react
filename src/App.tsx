@@ -1,3 +1,4 @@
+import { useEffect } from './lib/hooks/useEffect';
 import { useMemo } from './lib/hooks/useMemo';
 import { useRef } from './lib/hooks/useRef';
 import { useState } from './lib/hooks/useState';
@@ -21,15 +22,22 @@ export const Counter = memo(({ count }: { count: number }) => {
           setString('2');
         }}
       >
-        sss
+        {string}
       </button>
     </div>
   );
 });
 
 export const App = () => {
-  console.log('부모');
   const [count, setCount] = useState(0);
+  useEffect(() => {
+    console.log(`useEffect: App mounted or count changed to ${count}`);
+
+    // Cleanup 함수 반환
+    return () => {
+      console.log(`useEffect Cleanup: App unmounted or count changed from ${count}`);
+    };
+  }, [count]);
   return (
     <div>
       <button
